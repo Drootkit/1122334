@@ -11,5 +11,7 @@ endif()
 
 project ("cm_procinject")
 
+
 # 包含子项目。
 add_subdirectory ("cm_procinject")
+add_subdirectory ("dll_procinject")  # 新加的DLL子项目

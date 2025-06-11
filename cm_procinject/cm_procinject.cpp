@@ -3,6 +3,7 @@
 
 #include "Early Cascade APC Injection.h"
 #include "atombombing.h"
+#include "processHypnosis.h"
 
 /*
 * 根据手法
@@ -105,6 +106,7 @@ INT wmain(INT argc, PWCHAR argv[])
 	);
 
 	//testmain();
-	AtombombingExecute();
+	//AtombombingExecute();
+	processHypnosisExecute();
 	return 0;
 }

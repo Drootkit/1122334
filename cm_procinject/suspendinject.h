@@ -1,0 +1,1 @@
+int suspandthreat_injection_main1();
