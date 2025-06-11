@@ -1,7 +1,8 @@
 ﻿#include <Windows.h>
 #include <iostream>
 
-#include "test.h"
+#include "Early Cascade APC Injection.h"
+#include "atombombing.h"
 
 /*
 * 根据手法
@@ -103,6 +104,7 @@ INT wmain(INT argc, PWCHAR argv[])
 		
 	);
 
-	testmain();
+	//testmain();
+	AtombombingExecute();
 	return 0;
 }

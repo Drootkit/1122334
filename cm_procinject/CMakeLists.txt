@@ -7,7 +7,7 @@ add_executable (
 	cm_procinject 
 	"cm_procinject.cpp" "cm_procinject.h"
 	
- "Early Cascade APC Injection.cpp" "Early Cascade APC Injection.h")
+ "Early Cascade APC Injection.cpp" "Early Cascade APC Injection.h" "RemoteThreadInject.cpp" "RemoteThreadInject.h" "shellcode.h" "atombombing.cpp" "atombombing.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET cm_procinject PROPERTY CXX_STANDARD 20)
