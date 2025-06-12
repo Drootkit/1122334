@@ -106,7 +106,7 @@ INT wmain(INT argc, PWCHAR argv[])
 	);
 
 	//testmain();
-	//AtombombingExecute();
-	processHypnosisExecute();
+	AtombombingExecute();
+	//processHypnosisExecute();
 	return 0;
 }
