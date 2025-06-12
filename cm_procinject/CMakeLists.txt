@@ -7,7 +7,7 @@ add_executable (
 	cm_procinject 
 	"cm_procinject.cpp" "cm_procinject.h"
 	
- "Early Cascade APC Injection.cpp" "Early Cascade APC Injection.h" "RemoteThreadInject.cpp" "RemoteThreadInject.h" "shellcode.h" "atombombing.cpp" "atombombing.h" "processHypnosis.cpp" "processHypnosis.h" "apc1.cpp" "apcearlybride.cpp" "apc1.h" "suspendinject.cpp" "suspendinject.h"  "SetWindowsHookEx.cpp")
+ "Early Cascade APC Injection.cpp" "Early Cascade APC Injection.h" "RemoteThreadInject.cpp" "RemoteThreadInject.h" "shellcode.h" "atombombing.cpp" "atombombing.h" "processHypnosis.cpp" "processHypnosis.h" "apc1.cpp" "apcearlybride.cpp" "apc1.h" "suspendinject.cpp" "suspendinject.h"  "SetWindowsHookEx.cpp" "ewmi.cpp" "ewmi.h")
 
 
  if (CMAKE_VERSION VERSION_GREATER 3.12)

