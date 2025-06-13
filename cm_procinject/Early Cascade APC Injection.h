@@ -1,1 +1,1 @@
-int testmain();
+int apctestmain();

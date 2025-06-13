@@ -216,7 +216,7 @@ void ValidateSymbols(const char* name, PVOID address, HANDLE process = nullptr) 
 
 
 
-int testmain()
+int apctestmain()
 {
     // 1. Create Suspended Process
     STARTUPINFOW si = { 0 };
