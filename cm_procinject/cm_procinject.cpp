@@ -144,19 +144,65 @@ INT wmain(INT argc, PWCHAR argv[])
 
 	InitNtApi();
 
+	/*
+	* 本周核心：添加threadpool注入
+	* 
+	* 0616 周一 ： 预计添加alpc callback 
+	*			   预计添加instrumentation callback injction
+	*			   添加9种新手法 √
+	* 
+	* https://github.com/itaymigdal/awesome-injection  今天不实现，但是记录一下
+	* - 将shellcode按照section的方式map过去
+	* - 任何直接利用rwx内存方式的注入都是扯淡，因为压根找不到（Mocking jay Injection  嘲笑松鸦注射）
+	* - https://github.com/Dec0ne/DllNotificationInjection 2年前的。
+	* - https://github.com/TheD1rkMtr/D1rkInject 2年前的（可能是未收集）
+	* - https://github.com/maziland/StackBombing
+	* - https://github.com/S3cur3Th1sSh1t/Caro-Kann 2年前的（可能是未收集）像一种绕过方式
+	* - https://github.com/woldann/GhostInjector ghost Injector  3week ago 一种dll注入方式
+	* - Ghost Writing1 7年前，2针对x86，意义不大
+	* - https://github.com/OtterHacker/SetProcessInjection 2年前的（可能是未收集）SetProcessInjection
+	* - https://github.com/hasherezade/thread_namecalling 几个月前的，利用线程名称进行注入
+	* - https://github.com/hasherezade/waiting_thread_hijacking 几周前的，利用覆盖掉等待线程的返回地址实现注入
+	* - https://github.com/Friends-Security/RedirectThread 几周前，新时代的线程劫持注入
+	* - 
+	* - IFEO劫持：17年首次出现，需要管理员权限改注册表
+	*/
+
 	//testmain();
-	//AtombombingExecute();
-	//processHypnosisExecute();
-	//EWMIExecute();
-	//suspandthreat_injection_main1();
-	//testmain();
-	//kctcallbackExecute();
-	//clipbrdwndclassExecute();
-	//ListPlantingExecute();
-	//PropagateExecute();
-	//eminjectExecute();
+
+	
+	/*
+	* 线程操控
+	*/
+	// suspandthreat_injection_main1();
+	// processHypnosisExecute();
+	// APC1_injection_main();
+	// APCearlybrid_injection();
+	// apccascadeExecute();
+	// RemoteThreadInjectExecute();
+
+	/*
+	* Windows窗口类
+	*/
+	// EWMIExecute();
+	// PropagateExecute();
+	// ListPlantingExecute();
+	// clipbrdwndclassExecute();
+	// eminjectExecute();
+	// SetWindowsHookExExecute();
+
+	/*
+	* callback
+	*/
 	//wnfcallbackExecute();
+	//kctcallbackExecute();
 	//ctrlinjectExecute();
+
+	/*
+	* 其他手法
+	*/
+	//AtombombingExecute();
+
 
 	return 0;
 }

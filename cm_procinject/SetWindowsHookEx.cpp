@@ -1,7 +1,7 @@
 #include <iostream>
 #include <windows.h>
 
-int SetWindowsHookExExecute(int argc, char* argv[])
+int SetWindowsHookExExecute()
 {
     HMODULE hMod = LoadLibrary(TEXT("..\\dll_procinject\\MyDll.dll"));
 
