@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
-#include "test.h"
+#include "enumWindowCallback_shellTray.h"
 
 // 获取窗口类信息并检查条件
 BOOL CheckWindowConditions(HWND hwnd) 
@@ -192,7 +192,8 @@ BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam) {
     return TRUE; // 继续枚举
 }
 
-int main() {
+int Enum_WindowsProc_main() 
+{
     int count = 0;
 
     printf("开始遍历Windows中的所有窗口...\n");

@@ -128,3 +128,12 @@ hook类型
 ## 其他
 
 - Stackbombing：利用栈构造ROP执行shellcode
+
+
+## 目录分类
+
+- cm_proinject : 放的是进程注入的代码
+- dll_procinject : 放的是进程注入的代码，这里面放的是一些攻击用的dll，比如setwindowshookex这个手法
+- test_proj : 放置的是测试用的项目，比如各种测试功能，enum一些窗口或者测试代码等。
+
+编译后应该产生 两个exe和一个dll_

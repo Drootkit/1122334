@@ -10,10 +10,16 @@
 #include "suspendinject.h"
 #include "kctcallback.h"
 #include "clipbrdwndclass.h"
+#include "propagate.h"
+#include "ListPlanting.h"
+#include "eminject.h"
+#include "wnfcallback.h"
+#include "ctrlinject.h"
 
 
 _NtQueryInformationProcess NtQueryInformationProcess = NULL;
 
+_NtUpdateWnfStateData NtUpdateWnfStateData = NULL;
 
 /*
 * 根据手法
@@ -97,6 +103,12 @@ BOOL InitNtApi()
 		return FALSE;
 	}
 
+	NtUpdateWnfStateData = (_NtUpdateWnfStateData)GetProcAddress(lib, "NtUpdateWnfStateData");
+	if (NtUpdateWnfStateData == NULL) {
+		return FALSE;
+	}
+
+
 	return TRUE;
 }
 
@@ -139,7 +151,12 @@ INT wmain(INT argc, PWCHAR argv[])
 	//suspandthreat_injection_main1();
 	//testmain();
 	//kctcallbackExecute();
-	clipbrdwndclassExecute();
+	//clipbrdwndclassExecute();
+	//ListPlantingExecute();
+	//PropagateExecute();
+	//eminjectExecute();
+	//wnfcallbackExecute();
+	//ctrlinjectExecute();
 
 	return 0;
 }

@@ -5,7 +5,7 @@
 # 将源代码添加到此项目的可执行文件。
 add_executable (
 	test_proj 
-"test.cpp" "test.h")
+"enumWindowCallback_shellTray.cpp" "enumWindowCallback_shellTray.h" "test_main.cpp" "enumProp.cpp" "enumProp.h")
 
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
