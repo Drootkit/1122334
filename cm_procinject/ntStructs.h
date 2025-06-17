@@ -568,6 +568,158 @@ typedef struct _tagWnfName {
 
 // ------------------------ wnf callback ------------------------
 
+// ------------------------ alpc callback ------------------------
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO {
+    USHORT UniqueProcessId;
+    USHORT CreatorBackTraceIndex;
+    UCHAR  ObjectTypeIndex;
+    UCHAR  HandleAttributes;
+    USHORT HandleValue;
+    PVOID  Object;
+    ULONG  GrantedAccess;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO, * PSYSTEM_HANDLE_TABLE_ENTRY_INFO;
+
+typedef struct _SYSTEM_HANDLE_INFORMATION {
+    ULONG NumberOfHandles;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
+} SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;
+
+typedef struct _OBJECT_NAME_INFORMATION {
+    UNICODE_STRING Name;
+} OBJECT_NAME_INFORMATION, * POBJECT_NAME_INFORMATION;
+
+typedef struct _ACTIVATION_CONTEXT* PACTIVATION_CONTEXT;
+typedef struct _TP_CALLBACK_OBJECT {
+    ULONG                             RefCount;
+    PVOID                             CleanupGroupMember;
+    PTP_CLEANUP_GROUP                 CleanupGroup;
+    PTP_CLEANUP_GROUP_CANCEL_CALLBACK CleanupGroupCancelCallback;
+    PTP_SIMPLE_CALLBACK               FinalizationCallback;
+    LIST_ENTRY                        WorkList;
+    ULONG64                           Barrier;
+    ULONG64                           Unknown1;
+    SRWLOCK                           SharedLock;
+    TP_SIMPLE_CALLBACK                Callback;
+    PACTIVATION_CONTEXT               ActivationContext;
+    ULONG64                           SubProcessTag;
+    GUID                              ActivityId;
+    BOOL                              WorkingOnBehalfTicket;
+    PVOID                             RaceDll;
+    PTP_POOL                          Pool;
+    LIST_ENTRY                        GroupList;
+    ULONG                             Flags;
+    TP_SIMPLE_CALLBACK                CallerAddress;
+    TP_CALLBACK_PRIORITY              CallbackPriority;
+} TP_CALLBACK_OBJECT, * PTP_CALLBACK_OBJECT;
+
+typedef struct _TP_POOL {
+    ULONG64                           RefCount;
+    ULONG64                           Version;
+    LIST_ENTRY                        NumaRelatedList;
+    LIST_ENTRY                        PoolList;
+    PVOID                             NodeList;
+
+    HANDLE                            WorkerFactory;
+    HANDLE                            IoCompletion;
+    SRWLOCK                           PoolLock;
+    LIST_ENTRY                        UnknownList1;
+    LIST_ENTRY                        UnknownList2;
+
+} TP_POOL, * PTP_POOL;
+
+typedef struct _TP_WORK {
+    TP_CALLBACK_OBJECT                CallbackObject;
+    PVOID                             TaskId;
+    ULONG64                           Unknown[4];
+} TP_WORK, * PTP_WORK;
+
+typedef enum _OBJECT_INFORMATION_CLASS {
+    ObjectBasicInformation,          // = 0
+    ObjectNameInformation,          // = 1
+    ObjectTypeInformation,          // = 2
+    ObjectTypesInformation,         // = 3    //object handle is ignored
+    ObjectHandleFlagInformation     // = 4
+} OBJECT_INFORMATION_CLASS;
+
+typedef enum _SYSTEM_INFORMATION_CLASS
+{
+    SystemBasicInformation,                 // 0x00 SYSTEM_BASIC_INFORMATION
+    SystemProcessorInformation,             // 0x01 SYSTEM_PROCESSOR_INFORMATION
+    SystemPerformanceInformation,           // 0x02
+    SystemTimeOfDayInformation,             // 0x03
+    SystemPathInformation,                  // 0x04
+    SystemProcessInformation,               // 0x05
+    SystemCallCountInformation,             // 0x06
+    SystemDeviceInformation,                // 0x07
+    SystemProcessorPerformanceInformation,  // 0x08
+    SystemFlagsInformation,                 // 0x09
+    SystemCallTimeInformation,              // 0x0A
+    SystemModuleInformation,                // 0x0B SYSTEM_MODULE_INFORMATION
+    SystemLocksInformation,                 // 0x0C
+    SystemStackTraceInformation,            // 0x0D
+    SystemPagedPoolInformation,             // 0x0E
+    SystemNonPagedPoolInformation,          // 0x0F
+    SystemHandleInformation,                // 0x10
+    SystemObjectInformation,                // 0x11
+    SystemPageFileInformation,              // 0x12
+    SystemVdmInstemulInformation,           // 0x13
+    SystemVdmBopInformation,                // 0x14
+    SystemFileCacheInformation,             // 0x15
+    SystemPoolTagInformation,               // 0x16
+    SystemInterruptInformation,             // 0x17
+    SystemDpcBehaviorInformation,           // 0x18
+    SystemFullMemoryInformation,            // 0x19
+    SystemLoadGdiDriverInformation,         // 0x1A
+    SystemUnloadGdiDriverInformation,       // 0x1B
+    SystemTimeAdjustmentInformation,        // 0x1C
+    SystemSummaryMemoryInformation,         // 0x1D
+    SystemNextEventIdInformation,           // 0x1E
+    SystemEventIdsInformation,              // 0x1F
+    SystemCrashDumpInformation,             // 0x20
+    SystemExceptionInformation,             // 0x21
+    SystemCrashDumpStateInformation,        // 0x22
+    SystemKernelDebuggerInformation,        // 0x23
+    SystemContextSwitchInformation,         // 0x24
+    SystemRegistryQuotaInformation,         // 0x25
+    SystemExtendServiceTableInformation,    // 0x26
+    SystemPrioritySeperation,               // 0x27
+    SystemPlugPlayBusInformation,           // 0x28
+    SystemDockInformation,                  // 0x29
+    //SystemPowerInformation,               // 0x2A
+    //SystemProcessorSpeedInformation,      // 0x2B
+    //SystemCurrentTimeZoneInformation,     // 0x2C
+    //SystemLookasideInformation            // 0x2D
+
+} SYSTEM_INFORMATION_CLASS, * PSYSTEM_INFORMATION_CLASS;
+
+typedef struct _REMOTE_PORT_VIEW {
+
+    ULONG Length;                       // Size of this structure
+    ULONG ViewSize;                     // The size of the view (bytes)
+    PVOID ViewBase;                     // Base address of the view
+
+} REMOTE_PORT_VIEW, * PREMOTE_PORT_VIEW;
+
+typedef struct _PORT_VIEW {
+
+    ULONG  Length;                      // Size of this structure
+    HANDLE SectionHandle;               // Handle to section object with
+    // SECTION_MAP_WRITE and SECTION_MAP_READ
+    ULONG  SectionOffset;               // The offset in the section to map a view for
+    // the port data area. The offset must be aligned
+    // with the allocation granularity of the system.
+    ULONG  ViewSize;                    // The size of the view (in bytes)
+    PVOID  ViewBase;                    // The base address of the view in the creator
+    //
+    PVOID  ViewRemoteBase;              // The base address of the view in the process
+    // connected to the port.
+} PORT_VIEW, * PPORT_VIEW;
+// ------------------------ alpc callback end ------------------------
+
+
+
+
+
 
 
 // ------------------------ nt api ------------------------
@@ -608,3 +760,26 @@ typedef HRESULT(WINAPI* _RtlDecodeRemotePointer)(
     PVOID*    DecodedPtr
 );
 extern _RtlDecodeRemotePointer RtlDecodeRemotePointer;
+
+typedef NTSTATUS(NTAPI* _NtDuplicateObject)(
+    IN HANDLE SourceProcessHandle,
+    IN HANDLE SourceHandle,
+    IN HANDLE TargetProcessHandle OPTIONAL,
+    OUT PHANDLE TargetHandle OPTIONAL,
+    IN ACCESS_MASK DesiredAccess,
+    IN ULONG HandleAttributes,
+    IN ULONG Options
+);
+extern _NtDuplicateObject NtDuplicateObject;
+
+typedef NTSTATUS (NTAPI* _NtConnectPort)(
+    OUT PHANDLE PortHandle,
+    IN  PUNICODE_STRING PortName,
+    IN  PSECURITY_QUALITY_OF_SERVICE SecurityQos,
+    IN  OUT PPORT_VIEW ClientView OPTIONAL,
+    OUT PREMOTE_PORT_VIEW ServerView OPTIONAL,
+    OUT PULONG MaxMessageLength OPTIONAL,
+    IN  OUT PVOID ConnectionInformation OPTIONAL,
+    IN  OUT PULONG ConnectionInformationLength OPTIONAL
+);
+extern _NtConnectPort NtConnectPort;

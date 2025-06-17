@@ -1,7 +1,7 @@
 ﻿#include <Windows.h>
 #include <iostream>
 
-#include "ntApi.h"
+#include "ntStructs.h"
 
 #include "Early Cascade APC Injection.h"
 #include "atombombing.h"
@@ -15,10 +15,10 @@
 #include "eminject.h"
 #include "wnfcallback.h"
 #include "ctrlinject.h"
-
+#include "alpccallback.h"
 
 _NtQueryInformationProcess NtQueryInformationProcess = NULL;
-
+_NtDuplicateObject NtDuplicateObject = NULL;
 _NtUpdateWnfStateData NtUpdateWnfStateData = NULL;
 
 /*
@@ -108,6 +108,10 @@ BOOL InitNtApi()
 		return FALSE;
 	}
 
+	NtDuplicateObject = (_NtDuplicateObject)GetProcAddress(lib, "NtDuplicateObject");
+	if (NtDuplicateObject == NULL) {
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -204,6 +208,8 @@ INT wmain(INT argc, PWCHAR argv[])
 	//kctcallbackExecute();
 	//ctrlinjectExecute();
 
+	int AlpcCallbackExecute();
+	
 	/*
 	* 其他手法
 	*/
