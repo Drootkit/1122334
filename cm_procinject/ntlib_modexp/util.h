@@ -153,7 +153,8 @@ BOOL SetPrivilege(PWCHAR szPrivilege, BOOL bEnable){
     return bResult;
 }
 
-DWORD name2pid(LPWSTR ImageName) {
+DWORD name2pid(LPWSTR ImageName) 
+{
     HANDLE         hSnap;
     PROCESSENTRY32 pe32;
     DWORD          dwPid=0;
