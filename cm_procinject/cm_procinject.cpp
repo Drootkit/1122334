@@ -147,8 +147,8 @@ INT wmain(INT argc, PWCHAR argv[])
 	/*
 	* 本周核心：添加threadpool注入
 	* 
-	* 0616 周一 ： 预计添加alpc callback 
-	*			   预计添加instrumentation callback injction
+	* 0616 周一 ： 预计添加alpc callback ×
+	*			   预计添加instrumentation callback injction ×
 	*			   添加9种新手法 √
 	* 
 	* https://github.com/itaymigdal/awesome-injection  今天不实现，但是记录一下
@@ -165,7 +165,10 @@ INT wmain(INT argc, PWCHAR argv[])
 	* - https://github.com/hasherezade/waiting_thread_hijacking 几周前的，利用覆盖掉等待线程的返回地址实现注入
 	* - https://github.com/Friends-Security/RedirectThread 几周前，新时代的线程劫持注入
 	* - 
-	* - IFEO劫持：17年首次出现，需要管理员权限改注册表
+	* - IFEO劫持：17年首次出现，需要管理员权限改注册表，意义不大
+	*
+	* 0617 周二 ： 预计将modexp的所有poc迁移过来
+	*			   将已有代码进行归纳格式化
 	*/
 
 	//testmain();
@@ -174,12 +177,15 @@ INT wmain(INT argc, PWCHAR argv[])
 	/*
 	* 线程操控
 	*/
+	// RemoteThreadInjectExecute();
 	// suspandthreat_injection_main1();
-	// processHypnosisExecute();
+	// 
 	// APC1_injection_main();
 	// APCearlybrid_injection();
 	// apccascadeExecute();
-	// RemoteThreadInjectExecute();
+	// 
+	// processHypnosisExecute();
+	
 
 	/*
 	* Windows窗口类

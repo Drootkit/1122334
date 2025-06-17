@@ -172,3 +172,8 @@ PCHAR pid2name(DWORD pid)
     }
     return name;
 }
+
+VOID FuncERROR(PCHAR apiName, DWORD code)
+{
+    printf("%s run failed, status/errorcode: %d", apiName, code);
+}
