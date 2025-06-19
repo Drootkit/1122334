@@ -5,6 +5,10 @@ https://github.com/wojtekgoo/Infosec/blob/master/T1181%20-%20Extra%20Window%20Me
 2、创建进程测试失败，但是messagebox弹窗的shellcode执行成功
 3、测试发现，只有explorer进程和taskmgr这俩进程会影响shellcode执行，但是task这个中断后不会自己起来，子窗口基本都无效
 4、多开几个窗口，说不准就有哪个窗口能用，taskmgr并不一定能用
+
+
+*   核心思想兼容，都是针对iunknown结构进行修改，这俩改的是EWM里的quertinterface指针L"tooltips_class32", L"ForegroundStaging",
+*	ewmi改的是第四个指针，本质都一样，不重复实现。
 */
 
 #include <windows.h>

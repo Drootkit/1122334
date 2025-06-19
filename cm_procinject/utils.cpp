@@ -63,8 +63,7 @@ BOOL IsCodePtrEx(HANDLE hp, LPVOID ptr)
 }
 
 // enable or disable a privilege in current process token
-BOOL SetPrivilege(PCHAR szPrivilege, BOOL bEnable)
-{
+BOOL SetPrivilege(PWCHAR szPrivilege, BOOL bEnable) {
     HANDLE           hToken;
     BOOL             bResult;
     LUID             luid;
@@ -77,7 +76,7 @@ BOOL SetPrivilege(PCHAR szPrivilege, BOOL bEnable)
     if (!bResult)return FALSE;
 
     // lookup privilege
-    bResult = LookupPrivilegeValue(NULL, szPrivilege, &luid);
+    bResult = LookupPrivilegeValueW(NULL, szPrivilege, &luid);
 
     if (bResult) {
         tp.PrivilegeCount = 1;
@@ -85,8 +84,7 @@ BOOL SetPrivilege(PCHAR szPrivilege, BOOL bEnable)
         tp.Privileges[0].Attributes = bEnable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_REMOVED;
 
         // adjust token
-        AdjustTokenPrivileges(hToken, FALSE, &tp, 0, NULL, NULL);
-        bResult = GetLastError() == ERROR_SUCCESS;
+        bResult = AdjustTokenPrivileges(hToken, FALSE, &tp, 0, NULL, NULL);
     }
     CloseHandle(hToken);
     return bResult;
@@ -119,10 +117,35 @@ PWCHAR addr2sym(HANDLE hp, LPVOID addr)
     return name;
 }
 
-DWORD name2pid(LPCSTR ImageName)
+PWCHAR pid2name(DWORD pid) 
 {
     HANDLE         hSnap;
-    PROCESSENTRY32 pe32;
+    BOOL           bResult;
+    PROCESSENTRY32W pe32;
+    PWCHAR         name = NULL;
+
+    hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    if (hSnap != INVALID_HANDLE_VALUE) {
+        pe32.dwSize = sizeof(PROCESSENTRY32);
+
+        bResult = Process32FirstW(hSnap, &pe32);
+        while (bResult) {
+            if (pe32.th32ProcessID == pid) {
+                name = pe32.szExeFile;
+                break;
+            }
+            bResult = Process32NextW(hSnap, &pe32);
+        }
+        CloseHandle(hSnap);
+    }
+    return name;
+}
+
+DWORD name2pid(LPWSTR ImageName)
+{
+    HANDLE         hSnap;
+    PROCESSENTRY32W pe32;
     DWORD          dwPid = 0;
 
     // create snapshot of system
@@ -132,48 +155,14 @@ DWORD name2pid(LPCSTR ImageName)
     pe32.dwSize = sizeof(PROCESSENTRY32);
 
     // get first process
-    if (Process32First(hSnap, &pe32)) {
+    if (Process32FirstW(hSnap, &pe32)) {
         do {
-            if (lstrcmpi((LPCSTR)ImageName, pe32.szExeFile) == 0) {
+            if (lstrcmpiW(ImageName, pe32.szExeFile) == 0) {
                 dwPid = pe32.th32ProcessID;
                 break;
             }
-        } while (Process32Next(hSnap, &pe32));
+        } while (Process32NextW(hSnap, &pe32));
     }
     CloseHandle(hSnap);
     return dwPid;
-}
-
-PCHAR pid2name(DWORD pid)
-{
-    HANDLE         hSnap;
-    BOOL           bResult;
-    PROCESSENTRY32 pe32;
-    PCHAR         name = NULL;
-
-    hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-    if (hSnap != INVALID_HANDLE_VALUE) {
-        pe32.dwSize = sizeof(PROCESSENTRY32);
-
-        bResult = Process32First(hSnap, &pe32);
-        while (bResult) 
-        {
-            if (pe32.th32ProcessID == pid) 
-            {
-                name = pe32.szExeFile;
-                //CloseHandle(hSnap);
-                break;
-                //return name;
-            }
-            bResult = Process32Next(hSnap, &pe32);
-        }
-        CloseHandle(hSnap);
-    }
-    return name;
-}
-
-VOID FuncERROR(PCHAR apiName, DWORD code)
-{
-    printf("%s run failed, status/errorcode: %d", apiName, code);
 }

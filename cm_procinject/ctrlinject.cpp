@@ -9,9 +9,144 @@
 
 #include <DbgHelp.h>
 
+#include <Psapi.h>
+#include < shlwapi.h >
+
 #include "ntStructs.h"
 #include "utils.h"
 
+// #include "ntlib_modexp/util.h"
+
+/*
+BOOL IsHeapPtr(LPVOID ptr) {
+	MEMORY_BASIC_INFORMATION mbi;
+	DWORD                    res;
+
+	if (ptr == NULL) return FALSE;
+
+	// query the pointer
+	res = VirtualQuery(ptr, &mbi, sizeof(mbi));
+	if (res != sizeof(mbi)) return FALSE;
+
+	return ((mbi.State == MEM_COMMIT) &&
+		(mbi.Type == MEM_PRIVATE) &&
+		(mbi.Protect == PAGE_READWRITE));
+}
+BOOL IsCodePtrEx(HANDLE hp, LPVOID ptr) {
+	MEMORY_BASIC_INFORMATION mbi;
+	DWORD                    res;
+
+	if (ptr == NULL) return FALSE;
+
+	// query the pointer
+	res = VirtualQueryEx(hp, ptr, &mbi, sizeof(mbi));
+	if (res != sizeof(mbi)) return FALSE;
+
+	return ((mbi.State == MEM_COMMIT) &&
+		(mbi.Type == MEM_IMAGE) &&
+		(mbi.Protect == PAGE_EXECUTE_READ));
+}
+PWCHAR addr2sym(HANDLE hp, LPVOID addr) 
+{
+	WCHAR        path[MAX_PATH];
+	BYTE         buf[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(WCHAR)];
+	PSYMBOL_INFO si = (PSYMBOL_INFO)buf;
+	static WCHAR name[MAX_PATH];
+
+	ZeroMemory(path, ARRAYSIZE(path));
+	ZeroMemory(name, ARRAYSIZE(name));
+
+	GetMappedFileNameW(
+		hp, addr, path, MAX_PATH);
+
+	PathStripPathW(path);
+
+	si->SizeOfStruct = sizeof(SYMBOL_INFO);
+	si->MaxNameLen = MAX_SYM_NAME;
+
+	if (SymFromAddr(hp, (DWORD64)addr, NULL, si)) {
+		wsprintfW(name, L"%s!%hs", path, si->Name);
+	}
+	else {
+		lstrcpyW(name, path);
+	}
+	return name;
+}
+PWCHAR pid2name(DWORD pid) {
+	HANDLE         hSnap;
+	BOOL           bResult;
+	PROCESSENTRY32W pe32;
+	PWCHAR         name = NULL;
+
+	hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	if (hSnap != INVALID_HANDLE_VALUE) {
+		pe32.dwSize = sizeof(PROCESSENTRY32);
+
+		bResult = Process32FirstW(hSnap, &pe32);
+		while (bResult) {
+			if (pe32.th32ProcessID == pid) {
+				name = pe32.szExeFile;
+				break;
+			}
+			bResult = Process32NextW(hSnap, &pe32);
+		}
+		CloseHandle(hSnap);
+	}
+	return name;
+}
+DWORD name2pid(LPWSTR ImageName)
+{
+	HANDLE         hSnap;
+	PROCESSENTRY32W pe32;
+	DWORD          dwPid = 0;
+
+	// create snapshot of system
+	hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnap == INVALID_HANDLE_VALUE) return 0;
+
+	pe32.dwSize = sizeof(PROCESSENTRY32);
+
+	// get first process
+	if (Process32FirstW(hSnap, &pe32)) {
+		do {
+			if (lstrcmpiW(ImageName, pe32.szExeFile) == 0) {
+				dwPid = pe32.th32ProcessID;
+				break;
+			}
+		} while (Process32NextW(hSnap, &pe32));
+	}
+	CloseHandle(hSnap);
+	return dwPid;
+}
+BOOL SetPrivilege(PWCHAR szPrivilege, BOOL bEnable) {
+	HANDLE           hToken;
+	BOOL             bResult;
+	LUID             luid;
+	TOKEN_PRIVILEGES tp;
+
+	// open token for current process
+	bResult = OpenProcessToken(GetCurrentProcess(),
+		TOKEN_ADJUST_PRIVILEGES, &hToken);
+
+	if (!bResult)return FALSE;
+
+	// lookup privilege
+	bResult = LookupPrivilegeValueW(NULL, szPrivilege, &luid);
+
+	if (bResult) {
+		tp.PrivilegeCount = 1;
+		tp.Privileges[0].Luid = luid;
+		tp.Privileges[0].Attributes = bEnable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_REMOVED;
+
+		// adjust token
+		bResult = AdjustTokenPrivileges(hToken, FALSE, &tp, 0, NULL, NULL);
+	}
+	CloseHandle(hToken);
+	return bResult;
+}
+
+*/
 
 BOOL WINAPI HandlerRoutine(DWORD dwCtrlType) {
 	switch (dwCtrlType) {
@@ -365,10 +500,10 @@ int ctrlinjectExecute()
 	};
 	ListConsoles();
 
-	SetPrivilege((PCHAR)SE_DEBUG_NAME, TRUE);
+	SetPrivilege((PWCHAR)SE_DEBUG_NAME, TRUE);
 	SymSetOptions(SYMOPT_DEFERRED_LOADS);
 
-	pid = name2pid((PCHAR)"cmd.exe");
+	pid = name2pid((LPWSTR)L"cmd.exe");
 
 	if (pid == 0)
 	{

@@ -2,7 +2,8 @@
 #define UNICODE
 #include <windows.h>
 #include <iostream>
-#include "ntApi.h"
+
+#include "ntStructs.h"
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "shell32.lib")

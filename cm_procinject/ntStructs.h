@@ -16,6 +16,22 @@
 
 #define RVA2VA(type, base, rva) (type)((ULONG_PTR) base + rva)
 
+#define DIRECTORY_QUERY                 (0x0001)
+#define DIRECTORY_TRAVERSE              (0x0002)
+#define DIRECTORY_CREATE_OBJECT         (0x0004)
+#define DIRECTORY_CREATE_SUBDIRECTORY   (0x0008)
+#define DIRECTORY_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0xF)
+
+#define OBJ_INHERIT             0x00000002L
+#define OBJ_PERMANENT           0x00000010L
+#define OBJ_EXCLUSIVE           0x00000020L
+#define OBJ_CASE_INSENSITIVE    0x00000040L
+#define OBJ_OPENIF              0x00000080L
+#define OBJ_OPENLINK            0x00000100L
+#define OBJ_KERNEL_HANDLE       0x00000200L
+#define OBJ_FORCE_ACCESS_CHECK  0x00000400L
+#define OBJ_VALID_ATTRIBUTES    0x000007F2L
+
 
 typedef enum _PROCESSINFOCLASS {
     ProcessBasicInformation = 0,
@@ -714,11 +730,72 @@ typedef struct _PORT_VIEW {
     PVOID  ViewRemoteBase;              // The base address of the view in the process
     // connected to the port.
 } PORT_VIEW, * PPORT_VIEW;
+
+typedef struct _TP_SIMPLE_CALLBACK_alpccallback {
+    PVOID                             Function;
+    PVOID                             Context;
+} TP_SIMPLE_CALLBACK_alpccallback, * PTP_SIMPLE_CALLBACK_alpccallback;
+
+typedef struct _TP_CALLBACK_OBJECT_alpccallback {
+    ULONG                             RefCount;
+    PVOID                             CleanupGroupMember;
+    PTP_CLEANUP_GROUP                 CleanupGroup;
+    PTP_CLEANUP_GROUP_CANCEL_CALLBACK CleanupGroupCancelCallback;
+    PTP_SIMPLE_CALLBACK_alpccallback               FinalizationCallback;
+    LIST_ENTRY                        WorkList;
+    ULONG64                           Barrier;
+    ULONG64                           Unknown1;
+    SRWLOCK                           SharedLock;
+    TP_SIMPLE_CALLBACK_alpccallback                Callback;
+    PACTIVATION_CONTEXT               ActivationContext;
+    ULONG64                           SubProcessTag;
+    GUID                              ActivityId;
+    BOOL                              WorkingOnBehalfTicket;
+    PVOID                             RaceDll;
+    PTP_POOL                          Pool;
+    LIST_ENTRY                        GroupList;
+    ULONG                             Flags;
+    TP_SIMPLE_CALLBACK_alpccallback                CallerAddress;
+    TP_CALLBACK_PRIORITY              CallbackPriority;
+} TP_CALLBACK_OBJECT_alpccallback, * PTP_CALLBACK_OBJECT_alpccallback;
+
+
+typedef struct _TP_CLEANUP_GROUP {
+    ULONG                             Version;
+    SRWLOCK                           Lock;
+    LIST_ENTRY                        GroupList1;
+    PTP_SIMPLE_CALLBACK               FinalizationCallback;
+    LIST_ENTRY                        GroupList2;
+    ULONG64                           Unknown1;
+    LIST_ENTRY                        GroupList3;
+} TP_CLEANUP_GROUP, * PTP_CLEANUP_GROUP;
 // ------------------------ alpc callback end ------------------------
 
 
 
+// knowndlls
+typedef struct _IO_STATUS_BLOCK
+{
+    union
+    {
+        NTSTATUS Status;
+        PVOID Pointer;
+    };
 
+    ULONG_PTR Information;
+
+} IO_STATUS_BLOCK, * PIO_STATUS_BLOCK;
+
+typedef struct _OBJECT_ATTRIBUTES
+{
+    ULONG Length;
+    HANDLE RootDirectory;
+    PUNICODE_STRING ObjectName;
+    ULONG Attributes;
+    PVOID SecurityDescriptor;        // Points to type SECURITY_DESCRIPTOR
+    PVOID SecurityQualityOfService;  // Points to type SECURITY_QUALITY_OF_SERVICE
+
+} OBJECT_ATTRIBUTES, * POBJECT_ATTRIBUTES;
 
 
 
@@ -783,3 +860,87 @@ typedef NTSTATUS (NTAPI* _NtConnectPort)(
     IN  OUT PULONG ConnectionInformationLength OPTIONAL
 );
 extern _NtConnectPort NtConnectPort;
+
+typedef NTSTATUS (NTAPI* _NtQuerySystemInformation)(
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength
+);
+extern _NtQuerySystemInformation NtQuerySystemInformation;
+
+
+typedef NTSTATUS (NTAPI* _NtQueryObject)(
+    IN HANDLE ObjectHandle,
+    IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    OUT PVOID ObjectInformation,
+    IN ULONG Length,
+    OUT PULONG ResultLength OPTIONAL
+);
+extern _NtQueryObject NtQueryObject;
+
+typedef NTSTATUS(NTAPI* _RtlInitUnicodeString)(
+    OUT PUNICODE_STRING         DestinationString,
+    IN  PCWSTR                   SourceString
+    );
+extern _RtlInitUnicodeString RtlInitUnicodeString;
+
+
+typedef NTSTATUS (NTAPI* _NtCreateDirectoryObject)(
+    PHANDLE            DirectoryHandle,
+    ACCESS_MASK        DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes
+    );
+extern _NtCreateDirectoryObject NtCreateDirectoryObject;
+
+
+typedef BOOLEAN (NTAPI *_RtlDosPathNameToNtPathName)(
+    IN  PWSTR DosPathName,
+    OUT PUNICODE_STRING NtPathName,
+    OUT PWSTR* NtFileNamePart OPTIONAL,
+    OUT PCURDIR DirectoryInfo OPTIONAL
+);
+extern _RtlDosPathNameToNtPathName RtlDosPathNameToNtPathName;
+
+typedef NTSTATUS (NTAPI* _NtOpenFile)(
+    OUT PHANDLE FileHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN ULONG ShareAccess,
+    IN ULONG OpenOptions
+);
+extern _NtOpenFile NtOpenFile;
+
+typedef NTSTATUS (NTAPI* _NtCreateSection)(
+    OUT PHANDLE SectionHandle,
+    IN  ACCESS_MASK DesiredAccess,
+    IN  POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    IN  PLARGE_INTEGER MaximumSize OPTIONAL,
+    IN  ULONG SectionPageProtection,
+    IN  ULONG AllocationAttributes,
+    IN  HANDLE FileHandle OPTIONAL
+);
+extern _NtCreateSection NtCreateSection;
+
+typedef NTSTATUS (NTAPI* _NtSuspendProcess)(
+    IN HANDLE ProcessHandle
+);
+extern _NtSuspendProcess NtSuspendProcess;
+
+typedef NTSTATUS (NTAPI *_NtResumeProcess)(
+    IN HANDLE ProcessHandle
+);
+extern _NtResumeProcess NtResumeProcess;
+
+
+#ifndef InitializeObjectAttributes
+#define InitializeObjectAttributes( p, n, a, r, s ) {   \
+    (p)->Length = sizeof( OBJECT_ATTRIBUTES );          \
+    (p)->RootDirectory = r;                             \
+    (p)->Attributes = a;                                \
+    (p)->ObjectName = n;                                \
+    (p)->SecurityDescriptor = s;                        \
+    (p)->SecurityQualityOfService = NULL;               \
+    }
+#endif

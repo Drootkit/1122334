@@ -16,10 +16,27 @@
 #include "wnfcallback.h"
 #include "ctrlinject.h"
 #include "alpccallback.h"
+#include "dnscallback.h"
+#include "conhostinject.h"
+#include "knowndlls.h"
+#include "svcIDEinject.h"
 
 _NtQueryInformationProcess NtQueryInformationProcess = NULL;
 _NtDuplicateObject NtDuplicateObject = NULL;
 _NtUpdateWnfStateData NtUpdateWnfStateData = NULL;
+_NtQuerySystemInformation NtQuerySystemInformation = NULL;
+_NtQueryObject NtQueryObject = NULL;
+_RtlInitUnicodeString RtlInitUnicodeString = NULL;
+_NtConnectPort NtConnectPort = NULL;
+
+_NtCreateDirectoryObject NtCreateDirectoryObject = NULL;
+_RtlDosPathNameToNtPathName RtlDosPathNameToNtPathName = NULL;
+_NtOpenFile NtOpenFile = NULL;
+_NtCreateSection NtCreateSection = NULL;
+_NtSuspendProcess NtSuspendProcess = NULL;
+_NtResumeProcess NtResumeProcess = NULL;
+
+
 
 /*
 * 根据手法
@@ -48,7 +65,7 @@ Tooltip or Common Controls （tooltips_class32 窗口注入）
 
 ## （和Console-Window-Host Injection、tooltips_class32基本相似）T1055.011 窗口类 SetWindowLong （EWMI）Injection
 
-* modify callback 
+* modify callback
 EDR-Preloading Injection（篡改进程中的AvrfpAPILookupCallbackRoutine回调，指向shellcode，利用得当也可阻断edr的客户端dll）
 T1574.013 KCT(kernel call table) Injection（修改kct表中的回调，涉及到写PEB，可以保留）
 Service Control Injection（修改内部调度条目里的回调，执行shellcode）
@@ -85,9 +102,9 @@ Atombombing
 2、通过 -d 参数选择是否注入dll，后面需要跟dll路径
 
 * 示例：
-*	cm_procinject.exe <POC num> -f shellcode.bin 
+*	cm_procinject.exe <POC num> -f shellcode.bin
 *	cm_procinject.exe <POC num> -d <dll path>
-*	cm_procinject.exe <POC num> -m 
+*	cm_procinject.exe <POC num> -m
 *	cm_procinject.exe <POC num> -f shellcode.bin -m
 *	……
 */
@@ -112,6 +129,57 @@ BOOL InitNtApi()
 	if (NtDuplicateObject == NULL) {
 		return FALSE;
 	}
+
+	NtQuerySystemInformation = (_NtQuerySystemInformation)GetProcAddress(lib, "NtQuerySystemInformation");
+	if (NtQuerySystemInformation == NULL) {
+		return FALSE;
+	}
+
+	NtQueryObject = (_NtQueryObject)GetProcAddress(lib, "NtQueryObject");
+	if (NtQueryObject == NULL) {
+		return FALSE;
+	}
+
+	RtlInitUnicodeString = (_RtlInitUnicodeString)GetProcAddress(lib, "RtlInitUnicodeString");
+	if (RtlInitUnicodeString == NULL) {
+		return FALSE;
+	}NtConnectPort;
+
+	NtConnectPort = (_NtConnectPort)GetProcAddress(lib, "NtConnectPort");
+	if (NtConnectPort == NULL) {
+		return FALSE;
+	}
+
+	NtCreateDirectoryObject = (_NtCreateDirectoryObject)GetProcAddress(lib, "NtCreateDirectoryObject");
+	if (NtCreateDirectoryObject == NULL) {
+		return FALSE;
+	}
+
+	RtlDosPathNameToNtPathName = (_RtlDosPathNameToNtPathName)GetProcAddress(lib, "RtlDosPathNameToNtPathName_U_WithStatus");
+	if (RtlDosPathNameToNtPathName == NULL) {
+		return FALSE;
+	}
+
+	NtOpenFile = (_NtOpenFile)GetProcAddress(lib, "NtOpenFile");
+	if (NtOpenFile == NULL) {
+		return FALSE;
+	}
+
+	NtCreateSection = (_NtCreateSection)GetProcAddress(lib, "NtCreateSection");
+	if (NtCreateSection == NULL) {
+		return FALSE;
+	}
+
+	NtResumeProcess = (_NtResumeProcess)GetProcAddress(lib, "NtResumeProcess");
+	if (NtResumeProcess == NULL) {
+		return FALSE;
+	}
+
+	NtSuspendProcess = (_NtSuspendProcess)GetProcAddress(lib, "NtSuspendProcess");
+	if (NtSuspendProcess == NULL) {
+		return FALSE;
+	}
+
 
 	return TRUE;
 }
@@ -143,18 +211,22 @@ INT wmain(INT argc, PWCHAR argv[])
 		L"\nExecute Shellcode By Modify CallBack \n"
 		L"\nExecute Shellcode By Windows Class \n"
 		L"\nExecute Shellcode By Other way\n"
-		
+
 	);
 
-	InitNtApi();
+	if (!InitNtApi())
+	{
+		printf("init nt api ponit failed\n");
+		return 1;
+	}
 
 	/*
 	* 本周核心：添加threadpool注入
-	* 
+	*
 	* 0616 周一 ： 预计添加alpc callback ×
 	*			   预计添加instrumentation callback injction ×
 	*			   添加9种新手法 √
-	* 
+	*
 	* https://github.com/itaymigdal/awesome-injection  今天不实现，但是记录一下
 	* - 将shellcode按照section的方式map过去
 	* - 任何直接利用rwx内存方式的注入都是扯淡，因为压根找不到（Mocking jay Injection  嘲笑松鸦注射）
@@ -168,7 +240,7 @@ INT wmain(INT argc, PWCHAR argv[])
 	* - https://github.com/hasherezade/thread_namecalling 几个月前的，利用线程名称进行注入
 	* - https://github.com/hasherezade/waiting_thread_hijacking 几周前的，利用覆盖掉等待线程的返回地址实现注入
 	* - https://github.com/Friends-Security/RedirectThread 几周前，新时代的线程劫持注入
-	* - 
+	* -
 	* - IFEO劫持：17年首次出现，需要管理员权限改注册表，意义不大
 	*
 	* 0617 周二 ： 预计将modexp的所有poc迁移过来
@@ -177,7 +249,7 @@ INT wmain(INT argc, PWCHAR argv[])
 
 	//testmain();
 
-	
+
 	/*
 	* 线程操控
 	*/
@@ -189,7 +261,7 @@ INT wmain(INT argc, PWCHAR argv[])
 	// apccascadeExecute();
 	// 
 	// processHypnosisExecute();
-	
+
 
 	/*
 	* Windows窗口类
@@ -208,13 +280,16 @@ INT wmain(INT argc, PWCHAR argv[])
 	//kctcallbackExecute();
 	//ctrlinjectExecute();
 
-	int AlpcCallbackExecute();
-	
+	//AlpcCallbackExecute();
+	//dnscallbackExecute();  // 找到了，但是指针是0，没有意义,手法疑似失效
+	//ConhostInjectExecute();
+
+
 	/*
 	* 其他手法
 	*/
 	//AtombombingExecute();
-
+	//knowndllsExecute();
 
 	return 0;
 }
